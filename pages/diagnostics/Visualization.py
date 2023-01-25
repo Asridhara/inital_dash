@@ -9,6 +9,7 @@ from dash import dcc, html, Input, Output,  callback, register_page, State
 import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 from dash_iconify import DashIconify
+from dash import MATCH, ALL, ALLSMALLER,ctx
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -64,6 +65,12 @@ layout = html.Div([
         
     ]),
 
+    dcc.Store(id='Car_model',  storage_type = 'local'),
+
+    html.Hr(),
+
+    create_dtc_plot_with_summary(),
+ 
     html.Br(),
 
     dmc.Accordion(
@@ -72,38 +79,36 @@ layout = html.Div([
             dmc.AccordionItem(
                 label = 'Selection', 
                 children=[
-                    dcc.Store(id='Car_model',  storage_type = 'local'),
-
-                    html.Hr(),
-
-                    create_dtc_plot_with_summary(),
-
-                    html.Hr(),
-
+                
                     dmc.Header(
                         height=60, 
-                        children=[dmc.Center(
-                            children=[
-                                dmc.Text(
-                                    "Snapshot Analysis",
-                                    style={"fontSize": 35},
-                                )
-                            ]
-                        )], 
-                        style={"backgroundColor": "#FFFFFF"}
+                        children=[
+                                    dbc.Row([
+                                        dbc.Col([dmc.Text("Snapshot Analysis",style={"fontSize": 35})]),
+                                        dbc.Col([dmc.Text("Filters")],  width={"size": 1, "offset":4}),
+                                        dbc.Col([
+                                            dcc.Dropdown(
+                                            id ="filter-number",
+                                            options = [
+                                                {"value": 1, "label": "1"},
+                                                {"value": 2, "label": "2"},
+                                                {"value": 3, "label": "3"},
+                                                {"value": 4, "label": "4"},
+                                                ]
+                                            ),
+                                        ], width={"size": 1 })
+                                    ]
+                        )], style={"backgroundColor": "#FFFFFF"}
                     ),
 
                     create_snapshot_graph_layout(1),
                     
-                    html.Hr(),
 
                     create_snapshot_graph_layout(2),
                     
-                    html.Hr(),
 
                     create_snapshot_graph_layout(3),
                     
-                    html.Hr(),
 
                     create_snapshot_graph_layout(4),
 
@@ -156,242 +161,29 @@ layout = html.Div([
             dmc.AccordionItem(
                 label = "Report",
                 children=[ 
-                    dmc.Container([
-                        html.Div([
-                          dbc.Row([
-                                dbc.Col([
-                                    html.H3("Fault Report"),
-                                ],  width={"size": 4, "offset": 5})
-                            ],
-                            align="end",
-                            className="pad-row",
-                            style= {
-                                "marginTop": 20,
-                            }),  
+                 html.Div([
+                    dmc.Container(
+                        [
+                        graph_layout_header(),
 
-                            dmc.Divider(size="lg"),
+                        dmc.Space(),
 
-                            dmc.Space(h =20),
+                        html.H6("Selected Signals"),
+            
+                        dmc.Divider(size="lg"),
 
-                            dbc.Row([
-                                dbc.Col([html.H6("Model")], width = {"size": 3}),
-                                dbc.Col([html.H6("DTC")], width = {"size": 3}),
-                                dbc.Col([html.H6("Count")], width = {"size": 3}),
-                                dbc.Col([html.H6("Percentage")], width = {"size": 3}),
-                            ]),
+                        html.Div( id = "update-layout-with-filters", children =[]),
 
-                            dbc.Row([
-                                dbc.Col([html.Pre(id ="report-model")], width = {"size": 3}),
-                                dbc.Col([html.Pre(id ="report-dtc")], width = {"size": 3}),
-                                dbc.Col([html.Pre(id ="report-count")], width = {"size": 3}),
-                                dbc.Col([html.Pre(id ="report-percentage")], width = {"size": 3}),
+                        html.Br(),
 
-                                
-                            ]),
-
-                            dmc.Space(),
-
-                            html.H6("Selected Signals"),
-                            
-                            dmc.Divider(size="lg"),
-
-                            dbc.Row([
-                                dbc.Col([
-                                    html.Div([
-                                         dbc.Row([
-                                            dbc.Col([dmc.Text("Snapshot: ")]),
-                                            dbc.Col([html.Pre(id = 'snapshot-value-report-1')], width = {"size": 8}),
-                                        ],style = {'height':'20px'}),
-                                        dbc.Row([
-                                            dbc.Col([dmc.Text("DID: ")]),
-                                            dbc.Col([html.Pre(id = 'did-value-report-1' )], width = {"size": 8}),
-                                        ],style = {'height':'20px'}),
-                                        dbc.Row([
-                                            dbc.Col([dmc.Text("Signal: ")]),
-                                            dbc.Col([html.Pre(id = 'signal-value-report-1' , className="no-scrollbars")], width = {"size": 8}),
-                                        ],style = {'height':'20px'}),
-                                    ]),
-                                    
-                                    dcc.Graph(id= 'graph-report-1', figure= dict(data = [], layout = []), style={'height': 200, "marginLeft": 10, "marginTop": 15 ,"marginBottom": 15}),
-
-                                    html.Div([
-                                        dash_table.DataTable(
-                                            id= 'table-report-1',
-                                            columns= [{'name': 'value', 'id': 'value'},
-                                                        {'name': '%', 'id': 'percentage'}],
-                                            data = [],
-                                            page_current=0,
-                                            page_size=2,
-                                            style_table={'overflowX': 'auto'},
-                                            style_header={
-                                                'color': 'black',
-                                                'fontWeight': 'bold'
-                                                },
-                                            style_as_list_view=True,
-                                            ),
-                                    ]),  
-
-                                ],  width = {"size": 5}, style={'margin-right': '20px', 'margin-left': '0px'}),
-                            
-                                dbc.Col([
-                                    html.Div([
-                                         dbc.Row([
-                                            dbc.Col([dmc.Text("Snapshot: ")]),
-                                            dbc.Col([html.Pre(id = 'snapshot-value-report-2')], width = {"size": 8}),
-                                        ],style = {'height':'20px'}),
-                                        dbc.Row([
-                                            dbc.Col([dmc.Text("DID: ")]),
-                                            dbc.Col([html.Pre(id = 'did-value-report-2' )], width = {"size": 8}),
-                                        ],style = {'height':'20px'}),
-                                        dbc.Row([
-                                            dbc.Col([dmc.Text("Signal: ")]),
-                                            dbc.Col([html.Pre(id = 'signal-value-report-2')], width = {"size": 8}),
-                                        ],style = {'height':'20px'}),
-                                    ]),
-                                    
-                                    dcc.Graph(id= 'graph-report-2', figure= dict(data = [], layout = []),  style={'height': 200, "marginLeft": 10, "marginTop": 15 ,"marginBottom": 15}),
-
-                                    html.Div([
-                                        dash_table.DataTable(
-                                            id= 'table-report-2',
-                                            columns= [{'name': 'value', 'id': 'value'},
-                                                        {'name': '%', 'id': 'percentage'}],
-                                            data = [],
-                                            page_current=0,
-                                            page_size=2,
-                                            style_table={'overflowX': 'auto'},
-                                            style_header={
-                                                'color': 'black',
-                                                'fontWeight': 'bold'
-                                                },
-                                            style_as_list_view=True,
-                                            ),
-                                    ]),  
-                                ], width = {"size": 5}, style={'margin-right': '0px', 'margin-left': '0px'})
-                            ], style = { 'margin-left': '20px'}),
-
-                            html.Br(),
-
-                            dmc.Divider(size="lg"),
-
-                            html.Br(),
-
-                            dbc.Row([
-                                dbc.Col([
-                                    html.Div([
-                                         dbc.Row([
-                                            dbc.Col([dmc.Text("Snapshot: ")]),
-                                            dbc.Col([html.Pre(id = 'snapshot-value-report-3')], width = {"size": 8}),
-                                        ],style = {'height':'20px'}),
-                                        dbc.Row([
-                                            dbc.Col([dmc.Text("DID: ")]),
-                                            dbc.Col([html.Pre(id = 'did-value-report-3' )], width = {"size": 8}),
-                                        ],style = {'height':'20px'}),
-                                        dbc.Row([
-                                            dbc.Col([dmc.Text("Signal: ")]),
-                                            dbc.Col([html.Pre(id = 'signal-value-report-3')], width = {"size": 8}),
-                                        ],style = {'height':'20px'}),
-                                    ]),
-                                    
-                                    dcc.Graph(id= 'graph-report-3', figure= dict(data = [], layout = []),  style={'height': 200, "marginLeft": 10, "marginTop": 15 ,"marginBottom": 15}),
-
-                                    html.Div([
-                                        dash_table.DataTable(
-                                            id= 'table-report-3',
-                                            columns= [{'name': 'value', 'id': 'value'},
-                                                        {'name': '%', 'id': 'percentage'}],
-                                            data = [],
-                                            page_current=0,
-                                            page_size=2,
-                                            style_table={'overflowX': 'auto'},
-                                            style_header={
-                                                'color': 'black',
-                                                'fontWeight': 'bold'
-                                                },
-                                            style_as_list_view=True,
-                                            ),
-                                    ]),  
-                                ],  width = {"size": 5}, style={'margin-right': '20px', 'margin-left': '0px'}),
-                            
-                                dbc.Col([
-                                    html.Div([
-                                         dbc.Row([
-                                            dbc.Col([dmc.Text("Snapshot: ")]),
-                                            dbc.Col([html.Pre(id = 'snapshot-value-report-4')], width = {"size": 8}),
-                                        ],style = {'height':'20px'}),
-                                        dbc.Row([
-                                            dbc.Col([dmc.Text("DID: ")]),
-                                            dbc.Col([html.Pre(id = 'did-value-report-4' )], width = {"size": 8}),
-                                        ],style = {'height':'20px'}),
-                                        dbc.Row([
-                                            dbc.Col([dmc.Text("Signal: ")]),
-                                            dbc.Col([html.Pre(id = 'signal-value-report-4')], width = {"size": 8}),
-                                        ],style = {'height':'20px'}),
-                                    ]),
-                                    
-                                    dcc.Graph(id= 'graph-report-4', figure= dict(data = [], layout = []), style={'height': 200, "marginLeft": 10, "marginTop": 15 ,"marginBottom": 15}),
-
-                                    html.Div([
-                                        dash_table.DataTable(
-                                            id= 'table-report-4',
-                                            columns= [{'name': 'value', 'id': 'value'},
-                                                        {'name': '%', 'id': 'percentage'}],
-                                            data = [],
-                                            page_current=0,
-                                            page_size=2,
-                                            style_table={'overflowX': 'auto'},
-                                            style_header={
-                                                'color': 'black',
-                                                'fontWeight': 'bold'
-                                                },
-                                            style_as_list_view=True,
-                                            ),
-                                    ]),  
-                                ], width = {"size": 5},
-                                    style={'margin-right': '0px', 
-                                            'margin-left': '0px'})
-                            ], style = { 'margin-left': '20px'}),
-
-                            html.Br(),
-
-                            html.Div([
-                                html.H6('Filtered Cars and VINs'),
-                                dbc.Row(
-                                    [
-                                        dbc.Col([
-                                            dbc.Card([
-                                                dbc.CardBody([
-                                                    html.Pre(id='filterdcars-count',
-                                                    style = {"height": 20, 
-                                                            "overflow-y": "scroll"},
-                                                    className="no-scrollbars")
-                                                ])
-                                            ] ,
-                                            ),
-                                        ],
-                                        width = {"size": 2},
-                                        ),
-
-                                        dbc.Col([
-                                            dbc.Card([
-                                                dbc.CardBody([
-                                                    html.Pre(id='vin-list',
-                                                    style = {"height": 20, 
-                                                             "overflowY": "scroll"},
-                                                    className="no-scrollbars")
-                                                    ])
-                                                ]),
-                                        ],
-                                        width = {"size": 9}),
-                                    ]),
-                            ]),
+                        filtered_cars_report_layout(),
 
                         ],style={"marginTop": 20,
                                 "marginBottom": 20,
                                 "marginLeft" : 40 ,
                                 "marginRight" : 30  }),
 
-                    ],style={"position": "relative",
+                    ],style={"position": "centre",
                             "padding": 0,
                             "width": "210mm",
                             "height":"300mm",
@@ -402,9 +194,23 @@ layout = html.Div([
                             "border": f"2px solid"}),
                     
             ]),
-        ]
-    ),
 
+           dmc.AccordionItem(
+                label = "Snapshot Visualization",
+                children=[
+                    dmc.RadioGroup(
+                        id= 'tracks-list',
+                        data=[],
+                        orientation = 'horizontal',
+                        value="20",
+                        size="sm",
+                    ),
+                    html.Br(),
+                    
+                    html.Div(id = 'all-graphs-30', children =[]),
+                ]),
+
+        ]),
    
 ])
 
@@ -497,6 +303,39 @@ def display_cars_percentage(selectedData):
         percentage_value = selectedData["points"][0]["customdata"][1]
         return round(percentage_value, 3)
 
+@callback(
+    Output("snapshot-display-1", "style"),
+    Output("snapshot-display-2", "style"),
+    Output("snapshot-display-3", "style"),
+    Output("snapshot-display-4", "style"),
+    Input("filter-number", "value")
+)
+def select_value(value):
+    if value == 1:
+        return {'display':'block'},{'display':'none'},{'display':'none'},{'display':'none'}
+    elif value ==2:
+        return {'display':'block'},{'display':'block'},{'display':'none'},{'display':'none'}
+    elif value == 3:
+        return {'display':'block'},{'display':'block'},{'display':'block'},{'display':'none'}
+    else:
+        return {'display':'block'},{'display':'block'},{'display':'block'},{'display':'block'}
+
+@callback(
+    Output("update-layout-with-filters", "children"),
+    Input("filter-number", "value"),
+    Input("update-layout-with-filters", "children")
+)
+def display_report(selected_value, update_children):
+    if selected_value == 1:
+        update_children = graph_layout_one_filter()
+    elif selected_value == 2:
+        update_children = graph_layout_two_filter()
+    elif selected_value == 3:
+       update_children= graph_layout_three_filter()
+    else:
+        update_children  = graph_layout_four_filter()
+    return update_children
+
     
 @callback(
     Output('select-did-1', 'data'),
@@ -541,17 +380,15 @@ def update_2040_snapshot_graph(snapshot_value, did_value, signal, selectData):
             raise PreventUpdate
         else:
             dtc_value = selectData["points"][0]["customdata"][0]
-           
-        
             dtc_filtered_df = df[df.columns[df.columns.str.contains(dtc_value)==True]]
             dtc_filtered_df =  dtc_filtered_df.dropna(thresh = dtc_filtered_df.shape[0]*0.7,how='all',axis=0)
             dtc_filtered_df =  dtc_filtered_df.dropna(thresh = dtc_filtered_df.shape[0]*0.7,how='all',axis=1)
             plot_snapshot_df = dtc_filtered_df[dtc_filtered_df.columns[(dtc_filtered_df.columns.str.contains(rf'\d+/{dtc_value}/{snapshot_value}/{did_value}/{signal}'))]]
             trace_data = plot_snapshots_2040(plot_snapshot_df,did_information,did_value, signal)
             fig = go.Figure(trace_data) 
-            fig.update_layout( 
-                        height = 240,  
-                    )
+            fig = fig.update_layout( 
+                            height = 240, 
+                        )
             return fig, snapshot_value, did_value, signal
             
     except IndexError:
@@ -668,7 +505,7 @@ def update_2040_signal_dp_list(did_value, snapshot_value, selectedData):
     [Input('select-snapshot-2', 'value'),
     Input('select-did-2',  'value'),
     Input('select-signal-2',  'value'),
-    State('dtc-plot', 'selectedData')]
+    Input('dtc-plot', 'selectedData')]
 )
 def update_2040_snapshot_graph(snapshot_value, did_value, signal, selectData):
     try:
@@ -1131,24 +968,39 @@ def update_report(car_model, dtc_value,selectData):
     Output('graph-report-1', 'figure'),
     Input('snapshot-plot-1', 'selectedData'),
     Input('snapshot-plot-1', 'relayoutData'),
+    Input("filter-number", "value"),
     State('snapshot-plot-1', 'figure'),
 )
-def update_report_graph(selectData, releydatOut, figure_data):
+def update_report_graph(selectData, releydatOut, track_value_width, figure_data):
     if figure_data is None:
         raise PreventUpdate
     else:
-        fig = go.Figure( figure_data)
-        fig.update_layout(
-            height = 170,
-            width = 250 ,
-            margin = dict(
-                    autoexpand = False, 
-                    b = 30, 
-                    t = 25, 
-                    l = 20,
-                    r = 10
-                ),
-        )
+        fig = go.Figure(figure_data)
+        if track_value_width in [1,2]:
+            
+            fig.update_layout(
+                height = 170,
+                width = 600,
+                margin = dict(
+                        autoexpand = False, 
+                        b = 30, 
+                        t = 25, 
+                        l = 20,
+                        r = 10
+                    ),
+            )
+        else:
+            fig.update_layout(
+                height = 170,
+                width = 250,
+                margin = dict(
+                        autoexpand = False, 
+                        b = 30, 
+                        t = 25, 
+                        l = 20,
+                        r = 10
+                    ),
+            )
         return fig
 
 @callback(
@@ -1173,25 +1025,39 @@ def update_report_table(value_col, percentage_col):
     Output('graph-report-2', 'figure'),
     Input('snapshot-plot-2', 'selectedData'),
     Input('snapshot-plot-2', 'relayoutData'),
+    Input("filter-number", "value"),
     State('snapshot-plot-2', 'figure'),
 )
-def update_report_graph(selectData, releydatOut, figure_data):
+def update_report_graph(selectData, releydatOut, track_value_width, figure_data):
     none_check_list = [selectData, releydatOut, figure_data]
     if any(x is None for x in  none_check_list):
         raise PreventUpdate
     else:
         fig = go.Figure( figure_data)
-        fig.update_layout(
-            height = 170,
-            width = 250 ,
-            margin = dict(
-                    autoexpand = False, 
-                    b = 30, 
-                    t = 25, 
-                    l = 20,
-                    r = 10
-                ),
-        )
+        if track_value_width == 2:
+            fig.update_layout(
+                height = 170,
+                width = 600,
+                margin = dict(
+                        autoexpand = False, 
+                        b = 30, 
+                        t = 25, 
+                        l = 20,
+                        r = 10
+                    ),
+            )
+        else:
+            fig.update_layout(
+                height = 170,
+                width = 250,
+                margin = dict(
+                        autoexpand = False, 
+                        b = 30, 
+                        t = 25, 
+                        l = 20,
+                        r = 10
+                    ),
+            )
         return fig
 
 @callback(
@@ -1215,27 +1081,40 @@ def update_report_table(value_col, percentage_col):
     Output('graph-report-3', 'figure'),
     Input('snapshot-plot-3', 'selectedData'),
     Input('snapshot-plot-3', 'relayoutData'),
+    Input("filter-number", "value"),
     State('snapshot-plot-3', 'figure'),
 )
-def update_report_graph(selectData, releydatOut, figure_data):
+def update_report_graph(selectData, releydatOut, track_value_width, figure_data):
     none_check_list = [selectData, releydatOut, figure_data]
     if any(x is None for x in  none_check_list):
         raise PreventUpdate
     else:
         fig = go.Figure( figure_data)
-        fig.update_layout(
+        if track_value_width == 3:
+            fig.update_layout(
+                height = 170,
+                width = 600,
+                margin = dict(
+                        autoexpand = False, 
+                        b = 30, 
+                        t = 25, 
+                        l = 20,
+                        r = 10
+                    ),
+            )
+        else:
+            fig.update_layout(
                 height = 170,
                 width = 250,
                 margin = dict(
-                    autoexpand = False, 
-                    b = 30, 
-                    t = 25, 
-                    l = 20,
-                    r = 10
-                ),
+                        autoexpand = False, 
+                        b = 30, 
+                        t = 25, 
+                        l = 20,
+                        r = 10
+                    ),
             )
         return fig
-
 @callback(
     Output('table-report-3','data'),
     Input('x-values-graph-3','data'),
@@ -1296,29 +1175,55 @@ def update_report_table(value_col, percentage_col):
             displaydf = table_df.head(2)
             return displaydf.to_dict('records')
 
+@callback(
+    Output('tracks-list', 'data'),
+    Input('dtc-plot','selectedData')
+)
+def update_30_did_dp_list(selectData):
+    if selectData is None:
+        raise PreventUpdate
+    else:
+        dtc_value = selectData["points"][0]["customdata"][0]
+        return [{'label': i, 'value': i} for i in list(dtc_list[dtc_value]['30'].keys())]
+
+@callback(
+    Output('all-graphs-30', 'children'),
+    Input('tracks-list', 'value'),
+    Input('dtc-plot','selectedData'),
+    Input('all-graphs-30', 'children'),
+
+)
+def update_layout(track_name, selectData, updated_graph_layout):
+    if selectData is None or track_name is None:
+        raise PreventUpdate
+    else:
+        dtc_value = selectData["points"][0]["customdata"][0]
+        layout_length = len(dtc_list[dtc_value]['30'][track_name])
+        updated_graph_layout =  html.Div([
+            snapshot_30_graph_item(i) for i in range(layout_length)
+        ])
+        return updated_graph_layout
+
 # @callback(
-#     Output('clickdata-data1','children'),
-#     Output('clickdata-data2','children'),
-#     Input('x-values-graph-1','data'),
-#     Input('y-values-graph-1','data'),
+#     Output({'type': 'graph-pertrack','index': MATCH}, 'figure'),
+#     Input({'type': 'graph-pertrack','index': MATCH}, 'id'),
+#     State('tracks-list', 'value'),
+#     State('dtc-plot','selectedData'),
 # )
-# def disply_stored_values(x , y):
-#     return json.dumps(x), json.dumps(y)
-
-
-
-# @callback(
-#     Output('clickdata-data3','children'),
-#     Input('x-values-graph-1','data'),
-#     Input('y-values-graph-1','data'),
-  
-# )
-# def disply_stored_values(x , y):
-#     if len([y]) == 1:
-#         table_df = pd.DataFrame({"value":[x], "percentage": [y]}, index=[0]).round(3)
-#         return json.dumps(table_df.to_dict('records'))
+# def up_graph(figure_index,track_name, selectData):
+#     if selectData is None or track_name is None or figure_index is None:
+#         raise PreventUpdate
 #     else:
-#         table_df = pd.DataFrame({"value":x, "percentage": y}).sort_values(by="percentage",  ascending=False).round(3)
-#         return json.dumps(table_df.to_dict('records'))
+#         dtc_value = selectData["points"][0]["customdata"][0]
+#         signal_selected = dtc_list[dtc_value]['30'][track_name][figure_index['index']]
+#         dtc_filtered_df = df[df.columns[df.columns.str.contains(dtc_value)==True]]
+#         dtc_filtered_df =  dtc_filtered_df.dropna(thresh = dtc_filtered_df.shape[0]*0.7,how='all',axis=0)
+#         dtc_filtered_df =  dtc_filtered_df.dropna(thresh = dtc_filtered_df.shape[0]*0.7,how='all',axis=1)
 
-
+#         trace_data = plot_snapshots_30_all(dtc_filtered_df,did_information, dtc_value,track_name, signal_selected)
+#         fig = go.Figure(trace_data)
+#         fig.update_layout(
+#                 height = 170,
+#                 width = 700,
+#             )
+#         return fig

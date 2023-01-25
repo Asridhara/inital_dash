@@ -325,8 +325,8 @@ def plot_parallel_stringdf(df, raster, timeseries_signal_name):
                     margin = dict( 
                         b = 40, 
                         t = 20, 
-                        l = 120,
-                        r = 20,
+                        l = 90,
+                        r = 5,
                         ),
                     # shapes=[
                     #     {   
@@ -378,8 +378,8 @@ def plot_parallel_floatdf(df,did_df, raster, timeseries_signal_name):
                     margin = dict( 
                         b = 40, 
                         t = 60, 
-                        l = 20,
-                        r = 20,
+                        l = 90,
+                        r = 10,
                         ),
                     # shapes=[
                     #     {   
@@ -431,7 +431,7 @@ def plot_parallel_floatdf_timeseries(df, raster, timeseries_signal_name):
                     margin = dict( 
                         b = 40, 
                         t = 60, 
-                        l = 40,
+                        l = 90,
                         r = 10,
                         ),
                     # shapes=[
@@ -539,4 +539,39 @@ def plot_snapshots_30(df,did_information, dtc_value, did_value,signal, filter_in
 
     return plt_fig_30, plotting_df.index
 
+
+
+def plot_snapshots_30_all(df,did_information, dtc_value, did_value,signal):
+    snapshot_value = '30'
+    try:
+        track, timeseries_signal = re.split('(?<=\w\d)[_](?=[0-9A-Za-z])', signal)
+    except :
+        string_split = re.split('(?<=\w\d)[_](?=[0-9A-Za-z])', signal)
+        track = string_split[0]
+        timeseries_signal = '_'.join(string_split[1:])
+
+
+    plot_signal_df =  df[df.columns[(df.columns.str.contains(rf'\d+/{dtc_value}/{snapshot_value}/{did_value}/(\w+)'))]].dropna()
+    frequency_df = plot_signal_df.loc[:,plot_signal_df.columns.str.contains('Sample_rate_Ts')== True].mode()
+    sample_rate = list(frequency_df.values[0])[0]/1000
+    total_plotting_df = plot_signal_df.loc[:,plot_signal_df.columns.str.contains(timeseries_signal)== True]
+
+    plotting_df = total_plotting_df.copy()
+ 
+
+    if plotting_df.iloc[1,:].dtype == float or plotting_df.iloc[1,:].dtype == int:
+        
+        if len(np.unique(plotting_df)) > 16:
+            plt_fig_30 = plot_parallel_floatdf_timeseries(plotting_df[natsorted(plotting_df.columns)],sample_rate, signal)
+           
+        else:
+            lower_timeseries_signal= timeseries_signal.lower()
+            did_signal_df = did_information[(did_information['Parameter Name'].str.contains(lower_timeseries_signal)) & (did_information['Identifier']== did_value)]
+            plt_fig_30 = plot_parallel_floatdf(plotting_df[natsorted(plotting_df.columns)], did_signal_df, sample_rate, signal)
+        
+    else:
+        plt_fig_30 = plot_parallel_stringdf(plotting_df[natsorted(plotting_df.columns)], sample_rate, signal)
+       
+
+    return plt_fig_30
 
